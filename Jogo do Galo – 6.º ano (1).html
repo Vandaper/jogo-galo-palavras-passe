@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jogo do Galo – 6.º ano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9f1fb; --grid:#c6d9ef; --paper:#ffffff; --ink:#1b2f6b; --muted:#4a5b8c;
+  --x:#d6336c; --o:#1c7ed6; --win:#fff3bf; --ok:#2b8a3e; --bad:#c92a2a; --btn:#1b2f6b; --btnText:#ffffff;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101a36; --grid:#1d2c57; --paper:#182549; --ink:#dbe5ff; --muted:#9fb0e0;
+    --x:#ff6b9a; --o:#74c0fc; --win:#4a4210; --ok:#69db7c; --bad:#ff8787; --btn:#dbe5ff; --btnText:#101a36;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101a36; --grid:#1d2c57; --paper:#182549; --ink:#dbe5ff; --muted:#9fb0e0;
+  --x:#ff6b9a; --o:#74c0fc; --win:#4a4210; --ok:#69db7c; --bad:#ff8787; --btn:#dbe5ff; --btnText:#101a36;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; color:var(--ink); background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;
+  font-family:"Patrick Hand","Segoe Print","Comic Sans MS",cursive; font-size:1.2rem; line-height:1.4;
+}
+main{max-width:520px; margin:0 auto; padding:20px 16px 40px}
+h1{font-size:2.4rem; margin:0 0 2px; font-weight:400; line-height:1.1}
+.sub{margin:0 0 16px; color:var(--muted)}
+.opts{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+.opts button, .opts label{font:inherit}
+.seg{display:inline-flex; border:2px solid var(--ink); border-radius:10px; overflow:hidden; background:var(--paper)}
+.seg button{font:inherit; border:0; background:transparent; color:var(--ink); padding:6px 12px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--btn); color:var(--btnText)}
+.toggle{display:inline-flex; align-items:center; gap:8px; border:2px solid var(--ink); border-radius:10px; padding:6px 12px; background:var(--paper); cursor:pointer}
+.toggle input{width:20px; height:20px; accent-color:var(--ink)}
+.score{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; text-align:center}
+.score div{background:var(--paper); border:2px solid var(--ink); border-radius:10px; padding:4px 6px}
+.score b{display:block; font-size:1.8rem; font-weight:400; line-height:1.1}
+.score .sx b{color:var(--x)} .score .so b{color:var(--o)}
+.score small{font-size:1rem; color:var(--muted)}
+#status{min-height:2.8em; margin:0 0 10px; font-size:1.3rem}
+#board{display:grid; grid-template-columns:repeat(3,1fr); gap:5px; background:var(--ink); border:5px solid var(--ink); border-radius:12px; width:100%; aspect-ratio:1}
+.cell{border:0; background:var(--paper); font:inherit; font-size:min(24vw,8rem); line-height:1; cursor:pointer; color:var(--ink); padding:0; display:flex; align-items:center; justify-content:center; min-height:0}
+.cell:hover:not(:disabled){background:var(--grid)}
+.cell:focus-visible,.seg button:focus-visible,.act:focus-visible,.choice:focus-visible{outline:4px solid var(--x); outline-offset:-4px}
+.cell:disabled{cursor:default}
+.cell.X{color:var(--x)} .cell.O{color:var(--o)}
+.cell.win{background:var(--win)}
+.act{font:inherit; margin-top:14px; border:0; border-radius:10px; background:var(--btn); color:var(--btnText); padding:10px 20px; cursor:pointer}
+#veil{position:fixed; inset:0; background:rgba(10,18,45,.6); display:none; align-items:center; justify-content:center; padding:16px; z-index:5}
+#veil.on{display:flex}
+.card{background:var(--paper); border:3px solid var(--ink); border-radius:14px; padding:20px; width:100%; max-width:420px}
+.card .who{margin:0; color:var(--muted)}
+.card h2{font-size:1.4rem; font-weight:400; margin:4px 0 14px; line-height:1.25}
+.choices{display:grid; grid-template-columns:1fr; gap:10px}
+.choice{font:inherit; font-size:1.15rem; text-align:left; padding:10px 12px; border:2px solid var(--ink); border-radius:10px; background:var(--paper); color:var(--ink); cursor:pointer}
+.choice:hover{background:var(--grid)}
+.fb{margin:12px 0 0; min-height:1.4em}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+@media (prefers-reduced-motion:no-preference){ .cell span{animation:pop .18s ease-out} }
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Jogo do Galo</h1>
+  <p class="sub">Faz uma linha de três para ganhar e aprende a criar palavras-passe seguras!</p>
+
+  <div class="opts">
+    <div class="seg" role="group" aria-label="Modo de jogo">
+      <button id="m2" aria-pressed="true">2 jogadores</button>
+      <button id="mc" aria-pressed="false">Contra o computador</button>
+    </div>
+    <label class="toggle"><input type="checkbox" id="math"> Desafio das Palavras-passe</label>
+  </div>
+
+  <div class="score" aria-label="Pontuação">
+    <div class="sx"><b id="sx">0</b><small id="lx">Jogador X</small></div>
+    <div><b id="se">0</b><small>Empates</small></div>
+    <div class="so"><b id="so">0</b><small id="lo">Jogador O</small></div>
+  </div>
+
+  <p id="status" aria-live="polite"></p>
+  <div id="board" role="grid" aria-label="Tabuleiro"></div>
+  <button class="act" id="again">Novo jogo</button>
+</main>
+
+<div id="veil" role="dialog" aria-modal="true" aria-labelledby="qtext">
+  <div class="card">
+    <p class="who" id="qwho"></p>
+    <h2 id="qtext"></h2>
+    <div class="choices" id="choices"></div>
+    <p class="fb" id="fb" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  var board, turn, over, cpu=false, math=false, busy=false, score={X:0,O:0,E:0};
+  var $=function(id){return document.getElementById(id)};
+  var boardEl=$('board'), statusEl=$('status');
+
+  /* ---------- Perguntas sobre palavras-passe seguras ---------- */
+function r(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function pick(a){return a[r(0,a.length-1)]}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=r(0,i),t=a[i];a[i]=a[j];a[j]=t}return a}
+var BANK=[
+  {q:"Qual destas palavras-passe é a mais segura?",a:"Gat0!Azul#Chuva7",w:["123456","Joana2012"],why:"É longa e mistura letras, números e símbolos."},
+  {q:"Quantos carateres deve ter, no mínimo, uma boa palavra-passe?",a:"12 ou mais",w:["4","6"],why:"Quanto mais comprida, mais difícil é de descobrir."},
+  {q:"O que NÃO deves usar na tua palavra-passe?",a:"O teu nome e a data de nascimento",w:["Letras maiúsculas e minúsculas","Símbolos como ! # ?"],why:"São dados fáceis de adivinhar por outras pessoas."},
+  {q:"Um colega pede a tua palavra-passe “só para jogar um bocadinho”. O que fazes?",a:"Não a digo e, se insistir, falo com um adulto",w:["Digo-a, é meu amigo","Digo-a só se ele pedir por favor"],why:"A palavra-passe é pessoal. Só a podes partilhar com os teus pais ou encarregados de educação."},
+  {q:"Podes usar a mesma palavra-passe em todas as contas?",a:"Não, cada conta deve ter a sua",w:["Sim, assim é mais fácil de lembrar","Sim, se for muito comprida"],why:"Se descobrirem uma, ficam com acesso a todas as outras."},
+  {q:"Qual é o melhor sítio para guardar a palavra-passe?",a:"Na memória ou num gestor de palavras-passe, com ajuda de um adulto",w:["Num papel colado ao monitor","Numa mensagem enviada a um amigo"],why:"Um papel à vista ou uma mensagem podem ser vistos por quem não deve."},
+  {q:"Como podes criar uma palavra-passe forte e fácil de lembrar?",a:"Usar uma frase e trocar algumas letras por números e símbolos",w:["Usar só o nome do animal de estimação","Usar 1234 e acrescentar o ano"],why:"Uma frase é fácil de memorizar e, com números e símbolos, fica difícil de adivinhar."},
+  {q:"Recebes um email: “Ganhaste um telemóvel! Clica aqui e escreve a tua palavra-passe.” O que é?",a:"Uma burla (phishing) e não devo clicar",w:["Um prémio verdadeiro","Uma mensagem da escola"],why:"Os burlões fingem ser empresas para roubar palavras-passe. Mostra a mensagem a um adulto."},
+  {q:"Quando deves mudar a tua palavra-passe?",a:"Quando suspeitares que alguém a descobriu",w:["Só quando me esquecer dela","Nunca, mudar dá trabalho"],why:"Mudá-la logo impede que outra pessoa continue a usar a tua conta."},
+  {q:"Acabaste de usar o computador da escola. O que fazes?",a:"Termino a sessão (logout)",w:["Fecho só o ecrã","Deixo tudo aberto para o próximo colega"],why:"Se deixares a sessão aberta, outra pessoa pode entrar na tua conta."},
+  {q:"O que é a verificação em dois passos?",a:"Um segundo código, além da palavra-passe, para entrar na conta",w:["Escrever a palavra-passe duas vezes","Ter duas contas iguais"],why:"Mesmo que descubram a palavra-passe, falta-lhes o segundo código."},
+  {q:"Qual destas palavras-passe é a mais forte?",a:"Um conjunto de 12 carateres com letras, números e símbolos",w:["8 letras minúsculas","O meu nome"],why:"O tamanho e a variedade de carateres dão muito mais segurança."},
+  {q:"Alguém viu-te a escrever a palavra-passe. O que deves fazer?",a:"Mudá-la assim que possível",w:["Não faço nada","Digo-a também a essa pessoa"],why:"Se alguém a viu, já não é segredo."},
+  {q:"O computador de uma biblioteca pergunta: “Guardar a palavra-passe?”. O que respondes?",a:"Não guardar",w:["Guardar, assim não me esqueço","Guardar e deixar a sessão aberta"],why:"Num computador partilhado, outras pessoas poderiam entrar na tua conta."},
+  {q:"Qual destas é a pior palavra-passe?",a:"password",w:["Tr3s!Pat0s#Voam","M1nh@Escola*2026x"],why:"É uma das palavras-passe mais usadas e é das primeiras que os computadores experimentam."},
+  {q:"Podes dizer a tua palavra-passe a quem te telefona a dizer que é do teu banco ou da escola?",a:"Não, nunca devo dar a palavra-passe por telefone ou mensagem",w:["Sim, se parecer simpático","Sim, se souber o meu nome"],why:"Quem trabalha em serviços sérios nunca pede a tua palavra-passe."}
+];
+var deck=[];
+function makeQ(){
+  if(!deck.length) deck=shuffle(BANK.slice());
+  var b=deck.pop();
+  return {q:b.q,a:b.a,why:b.why,opts:shuffle([b.a].concat(b.w))};
+}
+
+  /* ---------- Jogo ---------- */
+  function names(){ $('lx').textContent=cpu?'Tu (X)':'Jogador X'; $('lo').textContent=cpu?'Computador (O)':'Jogador O'; }
+  function who(m){ return cpu?(m==='X'?'Tu':'O computador'):('O Jogador '+m); }
+  function setStatus(t){statusEl.textContent=t}
+
+  function build(){
+    boardEl.innerHTML='';
+    for(var i=0;i<9;i++){
+      var b=document.createElement('button');
+      b.className='cell'; b.dataset.i=i; b.setAttribute('role','gridcell');
+      b.setAttribute('aria-label','Casa '+(i+1)+', vazia');
+      b.addEventListener('click',onCell);
+      boardEl.appendChild(b);
+    }
+  }
+  function newGame(){
+    board=Array(9).fill(''); turn='X'; over=false; busy=false;
+    build(); names();
+    setStatus(math?'Vez de '+who('X')+'. Escolhe uma casa e responde à pergunta sobre palavras-passe seguras!':'Vez de '+who('X')+'.');
+  }
+  function paint(i){
+    var c=boardEl.children[i];
+    c.innerHTML='<span>'+(board[i]==='X'?'✕':'◯')+'</span>';
+    c.className='cell '+board[i]; c.disabled=true;
+    c.setAttribute('aria-label','Casa '+(i+1)+', '+board[i]);
+  }
+  function onCell(e){
+    var i=+e.currentTarget.dataset.i;
+    if(over||busy||board[i]) return;
+    if(cpu&&turn==='O') return;
+    if(math) ask(i); else place(i);
+  }
+  function place(i){
+    board[i]=turn; paint(i);
+    var line=WINS.filter(function(l){return l.every(function(k){return board[k]===turn})})[0];
+    if(line){
+      over=true; score[turn]++; line.forEach(function(k){boardEl.children[k].classList.add('win')});
+      setStatus(cpu&&turn==='O'?'O computador ganhou. Tenta outra vez!':(turn==='X'&&cpu?'Ganhaste! Parabéns!':'Ganhou '+who(turn)+'! Parabéns!'));
+      finish(); return;
+    }
+    if(board.every(Boolean)){ over=true; score.E++; setStatus('Empate! Jogaram os dois muito bem.'); finish(); return; }
+    next();
+  }
+  function next(){
+    turn=turn==='X'?'O':'X';
+    setStatus('Vez de '+who(turn)+'.');
+    if(cpu&&turn==='O'){ busy=true; setTimeout(cpuMove,550); }
+  }
+  function finish(){
+    $('sx').textContent=score.X; $('so').textContent=score.O; $('se').textContent=score.E;
+    for(var i=0;i<9;i++) boardEl.children[i].disabled=true;
+  }
+
+  /* ---------- Computador ---------- */
+  function findLine(m){
+    for(var w=0;w<8;w++){
+      var l=WINS[w], v=l.map(function(k){return board[k]});
+      if(v.filter(function(x){return x===m}).length===2&&v.indexOf('')>-1) return l[v.indexOf('')];
+    }
+    return -1;
+  }
+  function cpuMove(){
+    busy=false; if(over) return;
+    var m=findLine('O'); if(m<0) m=findLine('X');
+    if(m<0&&!board[4]) m=4;
+    if(m<0){ var c=shuffle([0,2,6,8]).filter(function(k){return !board[k]}); if(c.length) m=c[0]; }
+    if(m<0){ var e=[]; board.forEach(function(v,k){if(!v)e.push(k)}); m=pick(e); }
+    place(m);
+  }
+
+  /* ---------- Pergunta ---------- */
+  var pending=null;
+  function ask(i){
+    busy=true; pending={i:i,q:makeQ()};
+    $('qwho').textContent=who(turn)+', responde'+' para jogar na casa '+(i+1)+':';
+    $('qtext').textContent=pending.q.q; $('fb').textContent=''; $('fb').className='fb';
+    var box=$('choices'); box.innerHTML='';
+    pending.q.opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='choice'; b.textContent=o;
+      b.addEventListener('click',function(){answer(o)});
+      box.appendChild(b);
+    });
+    $('veil').classList.add('on');
+    box.firstChild.focus();
+  }
+  function answer(o){
+    var p=pending; if(!p) return; pending=null;
+    var ok=(o===p.q.a), fb=$('fb');
+    Array.prototype.forEach.call($('choices').children,function(b){b.disabled=true});
+    fb.className='fb '+(ok?'ok':'bad');
+    fb.textContent=ok?'Certo! '+p.q.why:'Não é bem assim. A resposta certa é: '+p.q.a+'. '+p.q.why+' Perdes a vez.';
+    setTimeout(function(){
+      $('veil').classList.remove('on'); busy=false;
+      if(ok) place(p.i); else next();
+    }, ok?2800:5500);
+  }
+
+  /* ---------- Controlos ---------- */
+  function setMode(c){
+    cpu=c; $('m2').setAttribute('aria-pressed',!c); $('mc').setAttribute('aria-pressed',c);
+    score={X:0,O:0,E:0}; finish0(); newGame();
+  }
+  function finish0(){$('sx').textContent=0;$('so').textContent=0;$('se').textContent=0}
+  $('m2').addEventListener('click',function(){setMode(false)});
+  $('mc').addEventListener('click',function(){setMode(true)});
+  $('math').addEventListener('change',function(e){math=e.target.checked; newGame();});
+  $('again').addEventListener('click',newGame);
+  newGame();
+})();
+</script>
+</body>
+</html>
